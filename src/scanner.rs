@@ -7,7 +7,7 @@ pub struct Scanner {
     start: usize,
     current: usize,
     line: u64,
-} 
+}
 
 impl Scanner {
     pub fn new(source: &str) -> Self {
@@ -38,7 +38,7 @@ impl Scanner {
         if !errors.is_empty() {
             let joined = errors.join("\n");
             return Err(joined);
-        }         
+        }
         Ok(self.tokens.clone())
     }
 
@@ -50,7 +50,7 @@ impl Scanner {
         let c = self.advance();
         match c {
             '(' => self.add_token(TokenType::LEFT_PAREN),
-            ')' => self.add_token(TokenType::RIGHT_PAREN),   
+            ')' => self.add_token(TokenType::RIGHT_PAREN),
             '{' => self.add_token(TokenType::LEFT_BRACE),
             '}' => self.add_token(TokenType::RIGHT_BRACE),
             ',' => self.add_token(TokenType::COMMA),
@@ -59,15 +59,82 @@ impl Scanner {
             '-' => self.add_token(TokenType::MINUS),
             ';' => self.add_token(TokenType::SEMICOLON),
             '*' => self.add_token(TokenType::STAR),
+            '!' => {
+                let token = if self.char_match('=') {
+                    BANG_EQUAL
+                } else {
+                    BANG
+                };
+                self.add_token(token);
+            }
+            '=' => {
+                let token = if self.char_match('=') {
+                    EQUAL_EQUAL
+                } else {
+                    EQUAL
+                };
+                self.add_token(token);
+            }
+            '<' => {
+                let token = if self.char_match('=') {
+                    LESS_EQUAL
+                } else {
+                    LESS
+                };
+                self.add_token(token);
+            }
+            '>' => {
+                let token = if self.char_match('=') {
+                    GREATER_EQUAL
+                } else {
+                    GREATER
+                };
+                self.add_token(token);
+            }
+            '/' => {
+                if self.char_match('/') {
+                    loop {
+                        if self.peek() == '\n' || self.is_at_end() {
+                            break;
+                        }
+                        self.advance();
+                    }
+                } else {
+                    self.add_token(SLASH);
+                }
+            }
+            ' ' | '\r' | '\t' => {}
+            '\n' => self.line += 1,
             _ => return Err(format!("unrecognized char: {} at line {}", c, self.line)),
         }
         Ok(())
+        // todo!()
+    }
+
+    fn peek(self: &Self) -> char {
+        if self.is_at_end() {
+            return '\0';
+        }
+        self.source.as_bytes()[self.current] as char
+    }
+
+    fn char_match(self: &mut Self, ch: char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+        if self.source.as_bytes()[self.current] as char != ch {
+            return false;
+        } else {
+            self.current += 1;
+            return true;
+        }
     }
 
     fn advance(&mut self) -> char {
         let c = self.source.chars().nth(self.current).unwrap_or('\0');
         self.current += 1;
-        c
+
+        c as char
     }
 
     fn add_token(&mut self, token_type: TokenType) {
@@ -85,7 +152,7 @@ impl Scanner {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     LEFT_PAREN,
     RIGHT_PAREN,
@@ -154,7 +221,12 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, lexeme: String, literal: Option<LiteralValue>, line_number: u64) -> Self {
+    pub fn new(
+        token_type: TokenType,
+        lexeme: String,
+        literal: Option<LiteralValue>,
+        line_number: u64,
+    ) -> Self {
         Self {
             token_type,
             lexeme,
@@ -165,5 +237,38 @@ impl Token {
 
     pub fn to_string(&self) -> String {
         format!("{} {} {:?}", self.token_type, self.lexeme, self.literal)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn handle_one_char_tokens() {
+        let source = "((  ))";
+        let mut scanner = Scanner::new(source);
+        scanner.scan_tokens();
+        println!("{:?}", scanner.tokens);
+        assert_eq!(scanner.tokens.len(), 5);
+        assert_eq!(scanner.tokens[0].token_type, LEFT_PAREN);
+        assert_eq!(scanner.tokens[1].token_type, LEFT_PAREN);
+        assert_eq!(scanner.tokens[2].token_type,  RIGHT_PAREN);
+        assert_eq!(scanner.tokens[3].token_type,  RIGHT_PAREN);
+        assert_eq!(scanner.tokens[4].token_type,  EoF);
+    }
+
+    #[test]
+    fn handle_two_char_tokens() {
+        let source = "! != == >=";
+        let mut scanner = Scanner::new(source);
+        scanner.scan_tokens();
+        println!("{:?}", scanner.tokens);
+        assert_eq!(scanner.tokens.len(), 5);
+        assert_eq!(scanner.tokens[0].token_type, BANG);
+        assert_eq!(scanner.tokens[1].token_type, BANG_EQUAL);
+        assert_eq!(scanner.tokens[2].token_type,  EQUAL_EQUAL);
+        assert_eq!(scanner.tokens[3].token_type,  GREATER_EQUAL);
+        assert_eq!(scanner.tokens[4].token_type,  EoF);
     }
 }
