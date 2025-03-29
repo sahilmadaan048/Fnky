@@ -14,13 +14,13 @@ fn run_file(path: &str) -> Result<(), String> {
 }
 
 fn run(_contents: &str) -> Result<(), String> {
-    let scanner = Scanner::new(_contents);
-    let tokens  = scanner.scan_tokens()?;
-
+    let mut scanner = Scanner::new(_contents); // Now `scanner` is mutable
+    let tokens = scanner.scan_tokens(); // Now it can be borrowed mutably
+    
     for token in tokens {
         println!("{:?}", token);
-    } 
-    return  Ok(());
+    }
+    return Ok(());
     // return Err("Not implemented".to_string());
 }
 
@@ -32,7 +32,7 @@ fn run_prompt() -> Result<(), String> {
             Ok(_) => (),
             Err(_) => return Err("Could not reach flush stdout".to_string()),
         }
-    
+
         let stdin = io::stdin();
         let mut handle = stdin.lock();
         match handle.read_line(&mut buffer) {
@@ -41,10 +41,10 @@ fn run_prompt() -> Result<(), String> {
                     // dbg!(n);
                     return Ok(());
                 }
-            },
-          Err(_) => return Err("Couldn't read line".to_string()),
+            }
+            Err(_) => return Err("Couldn't read line".to_string()),
         }
-    
+
         println!("ECHO: {}", buffer);
         match run(&buffer) {
             Ok(_) => (),
