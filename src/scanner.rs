@@ -1,4 +1,5 @@
-use std::fmt;
+use std::collections;
+use std::fmt::{self, format};
 use std::string::String;
 
 pub struct Scanner {
@@ -20,27 +21,36 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> Result<Vec<Token>, String> {
+    pub fn scan_tokens(self: &mut Self) -> Result<Vec<Token>, String> {
         let mut errors = vec![];
         while !self.is_at_end() {
             self.start = self.current;
-            if let Err(msg) = self.scan_token() {
-                errors.push(msg);
+            match self.scan_token() {
+                Ok(_) => (),
+                Err(msg) => errors.push(msg),
             }
         }
+    
         self.tokens.push(Token {
-            token_type: TokenType::EoF,
+            token_type: EoF,
             lexeme: "".to_string(),
             literal: None,
             line_number: self.line,
         });
-
-        if !errors.is_empty() {
-            let joined = errors.join("\n");
+    
+        if errors.len() > 0 {
+            let mut joined = "".to_string();
+            for error in errors {
+                joined.push_str(&error);
+                joined.push_str("\n");
+            }
             return Err(joined);
         }
+    
         Ok(self.tokens.clone())
     }
+    
+    
 
     fn is_at_end(&self) -> bool {
         self.current >= self.source.len()
@@ -105,24 +115,48 @@ impl Scanner {
             }
             ' ' | '\r' | '\t' => {}
             '\n' => self.line += 1,
+
+            '"' => self.string()?,
             _ => return Err(format!("unrecognized char: {} at line {}", c, self.line)),
         }
         Ok(())
         // todo!()
     }
 
+    fn string(self: &mut Self) -> Result<(), String> {
+        // "ajajnka"
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+            self.advance();
+        }
+        if self.is_at_end() {
+            return Err("Undeterminated string".to_string());
+        }
+        self.advance();
+
+        let value = &self.source[self.start + 1..self.current - 1]; // Remove quotes
+        self.add_token_lit(
+            TokenType::STRING,
+            Some(LiteralValue::StringValue(value.to_string())),
+        );
+        
+        Ok(())
+    }
+
     fn peek(self: &Self) -> char {
         if self.is_at_end() {
             return '\0';
         }
-        self.source.as_bytes()[self.current] as char
+        self.source.chars().nth(self.current).unwrap()
     }
 
     fn char_match(self: &mut Self, ch: char) -> bool {
         if self.is_at_end() {
             return false;
         }
-        if self.source.as_bytes()[self.current] as char != ch {
+        if self.source.chars().nth(self.current).unwrap() != ch {
             return false;
         } else {
             self.current += 1;
@@ -134,7 +168,7 @@ impl Scanner {
         let c = self.source.chars().nth(self.current).unwrap_or('\0');
         self.current += 1;
 
-        c as char
+        c
     }
 
     fn add_token(&mut self, token_type: TokenType) {
@@ -143,6 +177,7 @@ impl Scanner {
 
     fn add_token_lit(&mut self, token_type: TokenType, literal: Option<LiteralValue>) {
         let text = self.source[self.start..self.current].to_string();
+
         self.tokens.push(Token {
             token_type,
             lexeme: text,
@@ -151,7 +186,6 @@ impl Scanner {
         });
     }
 }
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     LEFT_PAREN,
@@ -211,7 +245,7 @@ pub enum LiteralValue {
     StringValue(String),
     IdentifierVal(String),
 }
-
+use LiteralValue::*;
 #[derive(Clone, Debug)]
 pub struct Token {
     token_type: TokenType,
@@ -253,9 +287,9 @@ mod tests {
         assert_eq!(scanner.tokens.len(), 5);
         assert_eq!(scanner.tokens[0].token_type, LEFT_PAREN);
         assert_eq!(scanner.tokens[1].token_type, LEFT_PAREN);
-        assert_eq!(scanner.tokens[2].token_type,  RIGHT_PAREN);
-        assert_eq!(scanner.tokens[3].token_type,  RIGHT_PAREN);
-        assert_eq!(scanner.tokens[4].token_type,  EoF);
+        assert_eq!(scanner.tokens[2].token_type, RIGHT_PAREN);
+        assert_eq!(scanner.tokens[3].token_type, RIGHT_PAREN);
+        assert_eq!(scanner.tokens[4].token_type, EoF);
     }
 
     #[test]
@@ -267,8 +301,49 @@ mod tests {
         assert_eq!(scanner.tokens.len(), 5);
         assert_eq!(scanner.tokens[0].token_type, BANG);
         assert_eq!(scanner.tokens[1].token_type, BANG_EQUAL);
-        assert_eq!(scanner.tokens[2].token_type,  EQUAL_EQUAL);
-        assert_eq!(scanner.tokens[3].token_type,  GREATER_EQUAL);
-        assert_eq!(scanner.tokens[4].token_type,  EoF);
+        assert_eq!(scanner.tokens[2].token_type, EQUAL_EQUAL);
+        assert_eq!(scanner.tokens[3].token_type, GREATER_EQUAL);
+        assert_eq!(scanner.tokens[4].token_type, EoF);
+    }
+
+    
+    #[test]
+    fn handle_string_lit() {
+        let source = r#""ABC""#;  // Corrected input
+        let mut scanner = Scanner::new(source);
+        scanner.scan_tokens().expect("Failed to scan tokens");
+        assert_eq!(scanner.tokens.len(), 2);  // EOF token included
+        assert_eq!(scanner.tokens[0].token_type, STRING);
+    
+        match scanner.tokens[0].literal.as_ref().unwrap() {
+            StringValue(val) => assert_eq!(val, "ABC"),
+            _ => panic!("Incorrect literal type"),
+        }
+    }
+
+        
+    #[test]
+    fn handle_string_lit_unterminated() {
+        let source = r#""ABC"#;  // Corrected input
+        let mut scanner = Scanner::new(source);
+        let result = scanner.scan_tokens();
+        match result {
+            Err(_) => (),
+            _ => panic!("should have failed"),
+        }
+    }
+
+    #[test]
+    fn handle_string_lit_multiline() {
+        let source = "\"ABC\ndef\"";  // Corrected input
+        let mut scanner = Scanner::new(source);
+        scanner.scan_tokens().expect("Failed to scan tokens");
+        assert_eq!(scanner.tokens.len(), 2);  // EOF token included
+        assert_eq!(scanner.tokens[0].token_type, STRING);
+    
+        match scanner.tokens[0].literal.as_ref().unwrap() {
+            StringValue(val) => assert_eq!(val, "ABC\ndef"),
+            _ => panic!("Incorrect literal type"),
+        }
     }
 }
