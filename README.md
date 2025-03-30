@@ -1,5 +1,7 @@
 # Fnky
 
+![Fnky Logo](Logo/logo.png)
+
 Fnky (pronounced "funky") is a lightweight, expressive interpreter built in Rust that emphasizes functional execution. With `fn` at its heart, Fnky ensures your code runs smoothly, safely, and with syntactic style. Whether you're composing scripts or working with expressions, Fnky adds flair to your coding experience.
 
 ## Features
