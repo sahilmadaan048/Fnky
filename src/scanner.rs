@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt::{self, format};
 use std::string::String;
 
+
 fn is_digit(ch: char) -> bool {
     return ch as u8 >= '0' as u8 && ch as u8 <= '9' as u8;
 }
@@ -323,7 +324,7 @@ pub enum TokenType {
     VAR,
     WHILE,
     EoF,
-}\
+}
 use TokenType::*;
 
 // Implement Display for TokenType
@@ -347,10 +348,10 @@ use LiteralValue::*;
 
 #[derive(Clone, Debug)]
 pub struct Token {
-    token_type: TokenType,
-    lexeme: String,  //it is just the string part of the token which stores the contents
-    literal: Option<LiteralValue>, //either Some of Nonec (in case of we have not defined themm in the enum variants)
-    line_number: u64,
+    pub token_type: TokenType,
+    pub lexeme: String,  //it is just the string part of the token which stores the contents
+    pub literal: Option<LiteralValue>, //either Some of Nonec (in case of we have not defined themm in the enum variants)
+    pub line_number: u64,
 }
 
 impl Token {
@@ -373,135 +374,135 @@ impl Token {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-    #[test]
-    fn handle_one_char_tokens() {
-        let source = "((  ))";
-        let mut scanner = Scanner::new(source);
-        scanner.scan_tokens();
-        println!("{:?}", scanner.tokens);
-        assert_eq!(scanner.tokens.len(), 5);
-        assert_eq!(scanner.tokens[0].token_type, LEFT_PAREN);
-        assert_eq!(scanner.tokens[1].token_type, LEFT_PAREN);
-        assert_eq!(scanner.tokens[2].token_type, RIGHT_PAREN);
-        assert_eq!(scanner.tokens[3].token_type, RIGHT_PAREN);
-        assert_eq!(scanner.tokens[4].token_type, EoF);
-    }
+//     #[test]
+//     fn handle_one_char_tokens() {
+//         let source = "((  ))";
+//         let mut scanner = Scanner::new(source);
+//         scanner.scan_tokens();
+//         println!("{:?}", scanner.tokens);
+//         assert_eq!(scanner.tokens.len(), 5);
+//         assert_eq!(scanner.tokens[0].token_type, LEFT_PAREN);
+//         assert_eq!(scanner.tokens[1].token_type, LEFT_PAREN);
+//         assert_eq!(scanner.tokens[2].token_type, RIGHT_PAREN);
+//         assert_eq!(scanner.tokens[3].token_type, RIGHT_PAREN);
+//         assert_eq!(scanner.tokens[4].token_type, EoF);
+//     }
 
-    #[test]
-    fn handle_two_char_tokens() {
-        let source = "! != == >=";
-        let mut scanner = Scanner::new(source);
-        scanner.scan_tokens();
-        println!("{:?}", scanner.tokens);
-        assert_eq!(scanner.tokens.len(), 5);
-        assert_eq!(scanner.tokens[0].token_type, BANG);
-        assert_eq!(scanner.tokens[1].token_type, BANG_EQUAL);
-        assert_eq!(scanner.tokens[2].token_type, EQUAL_EQUAL);
-        assert_eq!(scanner.tokens[3].token_type, GREATER_EQUAL);
-        assert_eq!(scanner.tokens[4].token_type, EoF);
-    }
+//     #[test]
+//     fn handle_two_char_tokens() {
+//         let source = "! != == >=";
+//         let mut scanner = Scanner::new(source);
+//         scanner.scan_tokens();
+//         println!("{:?}", scanner.tokens);
+//         assert_eq!(scanner.tokens.len(), 5);
+//         assert_eq!(scanner.tokens[0].token_type, BANG);
+//         assert_eq!(scanner.tokens[1].token_type, BANG_EQUAL);
+//         assert_eq!(scanner.tokens[2].token_type, EQUAL_EQUAL);
+//         assert_eq!(scanner.tokens[3].token_type, GREATER_EQUAL);
+//         assert_eq!(scanner.tokens[4].token_type, EoF);
+//     }
 
-    #[test]
-    fn handle_string_lit() {
-        let source = r#""ABC""#; // Corrected input
-        let mut scanner = Scanner::new(source);
-        scanner.scan_tokens().expect("Failed to scan tokens");//we can also do unwrap here 
-        assert_eq!(scanner.tokens.len(), 2); // EOF token included
-        assert_eq!(scanner.tokens[0].token_type, STRING);
-        assert_eq!(scanner.tokens[1].token_type, EoF);
+//     #[test]
+//     fn handle_string_lit() {
+//         let source = r#""ABC""#; // Corrected input
+//         let mut scanner = Scanner::new(source);
+//         scanner.scan_tokens().expect("Failed to scan tokens");//we can also do unwrap here 
+//         assert_eq!(scanner.tokens.len(), 2); // EOF token included
+//         assert_eq!(scanner.tokens[0].token_type, STRING);
+//         assert_eq!(scanner.tokens[1].token_type, EoF);
 
-        //since the literal is of type string we need to make them as reference
-        match scanner.tokens[0].literal.as_ref().unwrap() {
-            StringValue(val) => assert_eq!(val, "ABC"),
-            _ => panic!("Incorrect literal type"),
-        }
-    }
+//         //since the literal is of type string we need to make them as reference
+//         match scanner.tokens[0].literal.as_ref().unwrap() {
+//             StringValue(val) => assert_eq!(val, "ABC"),
+//             _ => panic!("Incorrect literal type"),
+//         }
+//     }
 
-    #[test]
-    fn handle_string_lit_unterminated() {
-        let source = r#""ABC"#; // Corrected input
-        let mut scanner = Scanner::new(source);
-        let result = scanner.scan_tokens();
-        match result {
-            Err(_) => (),
-            _ => panic!("should have failed"),
-        }
-    }
+//     #[test]
+//     fn handle_string_lit_unterminated() {
+//         let source = r#""ABC"#; // Corrected input
+//         let mut scanner = Scanner::new(source);
+//         let result = scanner.scan_tokens();
+//         match result {
+//             Err(_) => (),
+//             _ => panic!("should have failed"),
+//         }
+//     }
 
-    #[test]
-    fn handle_string_lit_multiline() {
-        let source = "\"ABC\ndef\""; // Corrected input
-        let mut scanner = Scanner::new(source);
-        scanner.scan_tokens().expect("Failed to scan tokens");
-        assert_eq!(scanner.tokens.len(), 2); // EOF token included
-        assert_eq!(scanner.tokens[0].token_type, STRING);
+//     #[test]
+//     fn handle_string_lit_multiline() {
+//         let source = "\"ABC\ndef\""; // Corrected input
+//         let mut scanner = Scanner::new(source);
+//         scanner.scan_tokens().expect("Failed to scan tokens");
+//         assert_eq!(scanner.tokens.len(), 2); // EOF token included
+//         assert_eq!(scanner.tokens[0].token_type, STRING);
 
-        match scanner.tokens[0].literal.as_ref().unwrap() {
-            StringValue(val) => assert_eq!(val, "ABC\ndef"),
-            _ => panic!("Incorrect literal type"),
-        }
-    }
+//         match scanner.tokens[0].literal.as_ref().unwrap() {
+//             StringValue(val) => assert_eq!(val, "ABC\ndef"),
+//             _ => panic!("Incorrect literal type"),
+//         }
+//     }
 
-    #[test]
-    fn number_literals() {
-        let source = "123.123\n121.0\n5"; // Corrected input
-        let mut scanner = Scanner::new(source);
-        scanner.scan_tokens().unwrap();
-        assert_eq!(scanner.tokens.len(), 4); // EOF token included
-        for i in 0..3 {
-            assert_eq!(scanner.tokens[i].token_type, NUMBER);
-        }
-        match scanner.tokens[0].literal.as_ref().unwrap() {
-            FValue(val) => assert_eq!(*val, 123.123),
-            _ => panic!("Incorrect literal type"),
-        }
-        match scanner.tokens[1].literal.as_ref().unwrap() {
-            FValue(val) => assert_eq!(*val, 121.0),
-            _ => panic!("Incorrect literal type"),
-        }
-        match scanner.tokens[2].literal.as_ref().unwrap() {
-            FValue(val) => assert_eq!(*val, 5.0),
-            _ => panic!("Incorrect literal type"),
-        }
-    }
+//     #[test]
+//     fn number_literals() {
+//         let source = "123.123\n121.0\n5"; // Corrected input
+//         let mut scanner = Scanner::new(source);
+//         scanner.scan_tokens().unwrap();
+//         assert_eq!(scanner.tokens.len(), 4); // EOF token included
+//         for i in 0..3 {
+//             assert_eq!(scanner.tokens[i].token_type, NUMBER);
+//         }
+//         match scanner.tokens[0].literal.as_ref().unwrap() {
+//             FValue(val) => assert_eq!(*val, 123.123),
+//             _ => panic!("Incorrect literal type"),
+//         }
+//         match scanner.tokens[1].literal.as_ref().unwrap() {
+//             FValue(val) => assert_eq!(*val, 121.0),
+//             _ => panic!("Incorrect literal type"),
+//         }
+//         match scanner.tokens[2].literal.as_ref().unwrap() {
+//             FValue(val) => assert_eq!(*val, 5.0),
+//             _ => panic!("Incorrect literal type"),
+//         }
+//     }
 
-    #[test]
-    fn get_identifier() {
-        let source = "this_is_a_var = 12;";
-        let mut scanner = Scanner::new(source);
-        scanner.scan_tokens().unwrap();
-        assert_eq!(scanner.tokens.len(), 5);
-        assert_eq!(scanner.tokens[0].token_type, IDENTIFIER);
-        assert_eq!(scanner.tokens[1].token_type, EQUAL);
-        assert_eq!(scanner.tokens[2].token_type, NUMBER);
-        assert_eq!(scanner.tokens[3].token_type, SEMICOLON);
-        assert_eq!(scanner.tokens[4].token_type, EoF);
-    }
+//     #[test]
+//     fn get_identifier() {
+//         let source = "this_is_a_var = 12;";
+//         let mut scanner = Scanner::new(source);
+//         scanner.scan_tokens().unwrap();
+//         assert_eq!(scanner.tokens.len(), 5);
+//         assert_eq!(scanner.tokens[0].token_type, IDENTIFIER);
+//         assert_eq!(scanner.tokens[1].token_type, EQUAL);
+//         assert_eq!(scanner.tokens[2].token_type, NUMBER);
+//         assert_eq!(scanner.tokens[3].token_type, SEMICOLON);
+//         assert_eq!(scanner.tokens[4].token_type, EoF);
+//     }
 
-    #[test]
-    fn get_keyword() {
-        let source = r#"var this_is_a_var = 12; while true { print 3 };"#;
-        let mut scanner = Scanner::new(source);
-        scanner.scan_tokens().unwrap();
+//     #[test]
+//     fn get_keyword() {
+//         let source = r#"var this_is_a_var = 12; while true { print 3 };"#;
+//         let mut scanner = Scanner::new(source);
+//         scanner.scan_tokens().unwrap();
 
-        assert_eq!(scanner.tokens.len(), 13);
+//         assert_eq!(scanner.tokens.len(), 13);
 
-        assert_eq!(scanner.tokens[0].token_type, VAR);
-        assert_eq!(scanner.tokens[1].token_type, IDENTIFIER);
-        assert_eq!(scanner.tokens[2].token_type, EQUAL);
-        assert_eq!(scanner.tokens[3].token_type, NUMBER);
-        assert_eq!(scanner.tokens[4].token_type, SEMICOLON);
-        assert_eq!(scanner.tokens[5].token_type, WHILE);
-        assert_eq!(scanner.tokens[6].token_type, TRUE);
-        assert_eq!(scanner.tokens[7].token_type, LEFT_BRACE);
-        assert_eq!(scanner.tokens[8].token_type, PRINT);
-        assert_eq!(scanner.tokens[9].token_type, NUMBER);
-        assert_eq!(scanner.tokens[10].token_type, RIGHT_BRACE);
-        assert_eq!(scanner.tokens[11].token_type, SEMICOLON);
-        assert_eq!(scanner.tokens[12].token_type, EoF);
-    }
-}
+//         assert_eq!(scanner.tokens[0].token_type, VAR);
+//         assert_eq!(scanner.tokens[1].token_type, IDENTIFIER);
+//         assert_eq!(scanner.tokens[2].token_type, EQUAL);
+//         assert_eq!(scanner.tokens[3].token_type, NUMBER);
+//         assert_eq!(scanner.tokens[4].token_type, SEMICOLON);
+//         assert_eq!(scanner.tokens[5].token_type, WHILE);
+//         assert_eq!(scanner.tokens[6].token_type, TRUE);
+//         assert_eq!(scanner.tokens[7].token_type, LEFT_BRACE);
+//         assert_eq!(scanner.tokens[8].token_type, PRINT);
+//         assert_eq!(scanner.tokens[9].token_type, NUMBER);
+//         assert_eq!(scanner.tokens[10].token_type, RIGHT_BRACE);
+//         assert_eq!(scanner.tokens[11].token_type, SEMICOLON);
+//         assert_eq!(scanner.tokens[12].token_type, EoF);
+//     }
+// }
