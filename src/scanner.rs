@@ -1,7 +1,5 @@
-use std::collections;
 use std::collections::HashMap;
 use std::fmt::{self, format};
-use std::path::Ancestors;
 use std::string::String;
 
 fn is_digit(ch: char) -> bool {
@@ -52,23 +50,24 @@ pub struct Scanner {
 
 impl Scanner {
     pub fn new(source: &str) -> Self {
+        //return a instance of scanner type with empty fields
         Self {
-            source: source.to_string(),
-            tokens: vec![],
-            start: 0,
-            current: 0,
-            line: 1,
-            keywords: get_keywords_hashmap(),
+            source: source.to_string(), //this is the input text passed from the run function
+            tokens: vec![], //initialise a empty vector to store the string as a vector of tokens
+            start: 0,       //starting index is 0 for now
+            current: 0,     //current indesx is also 9
+            line: 1,        //line indexing starts from 1
+            keywords: get_keywords_hashmap(), //all the keywords that needs to be recoginised by the interpreter for now
         }
     }
 
-    pub fn get_keywords_hashmap() {}
-
-    pub fn scan_tokens(self: &mut Self) -> Result<Vec<Token>, String> {
-        let mut errors = vec![];
+    pub fn scan_tokens(self: &mut Self) -> Result<Vec<Token>, String> { //from the source strinf we need to extract the tokens and retuiirn them as vector in cxase of success and a string error in case of failure
+        let mut errors = vec![];  //lets initialise a vector of strings which wuill store our errors
+        
+        //jab tak end tak nahi pahunchte input string ke
         while !self.is_at_end() {
             self.start = self.current;
-            match self.scan_token() {
+            match self.scan_token() {  //at the end (when we encounter \n)
                 Ok(_) => (),
                 Err(msg) => errors.push(msg),
             }
@@ -82,6 +81,8 @@ impl Scanner {
         });
 
         if errors.len() > 0 {
+
+            //lets retirn all the errors stored in the errors vector by cocating as a string with line gap of 1 between each error
             let mut joined = "".to_string();
             for error in errors {
                 joined.push_str(&error);
@@ -169,7 +170,6 @@ impl Scanner {
             }
         }
         Ok(())
-        // todo!()
     }
 
     fn identifier(&mut self) -> Result<(), String> {
@@ -200,6 +200,7 @@ impl Scanner {
         }
 
         let substring = &self.source[self.start..self.current];
+        //string literals to f64 parsing needs to be done here
         let value = substring.parse::<f64>();
 
         match value {
@@ -240,27 +241,28 @@ impl Scanner {
     }
 
     fn peek(self: &Self) -> char {
-        if self.is_at_end() {
+        if self.is_at_end() { //checks if we are at the end of input string if so return a null character 
             return '\0';
         }
-        self.source.chars().nth(self.current).unwrap()
+        self.source.chars().nth(self.current).unwrap() //returns the current character
     }
 
     fn char_match(self: &mut Self, ch: char) -> bool {
-        if self.is_at_end() {
+        if self.is_at_end() {  //if we reach end without charecter marching
             return false;
         }
         if self.source.chars().nth(self.current).unwrap() != ch {
-            return false;
+            return false; //if it does not match return false
         } else {
-            self.current += 1;
+            self.current += 1; //if matched increase the current index and return true
             return true;
         }
     }
 
     fn advance(&mut self) -> char {
+        //self.source.chars() converts self.source (which is string or &str) into a iterator of characters
         let c = self.source.chars().nth(self.current).unwrap_or('\0');
-        self.current += 1;
+        self.current += 1;  //advancing the current index
 
         c
     }
@@ -321,8 +323,7 @@ pub enum TokenType {
     VAR,
     WHILE,
     EoF,
-}
-
+}\
 use TokenType::*;
 
 // Implement Display for TokenType
@@ -332,6 +333,7 @@ impl std::fmt::Display for TokenType {
     }
 }
 
+//make a enum to define the datatypes of the values which could be entered in the input string
 #[derive(Debug, Clone)]
 pub enum LiteralValue {
     IntValue(i64),
@@ -339,12 +341,15 @@ pub enum LiteralValue {
     StringValue(String),
     IdentifierVal(String),
 }
+//make them public for use by entire code using the glob operator
 use LiteralValue::*;
+
+
 #[derive(Clone, Debug)]
 pub struct Token {
     token_type: TokenType,
-    lexeme: String,
-    literal: Option<LiteralValue>,
+    lexeme: String,  //it is just the string part of the token which stores the contents
+    literal: Option<LiteralValue>, //either Some of Nonec (in case of we have not defined themm in the enum variants)
     line_number: u64,
 }
 
@@ -404,10 +409,12 @@ mod tests {
     fn handle_string_lit() {
         let source = r#""ABC""#; // Corrected input
         let mut scanner = Scanner::new(source);
-        scanner.scan_tokens().expect("Failed to scan tokens");
+        scanner.scan_tokens().expect("Failed to scan tokens");//we can also do unwrap here 
         assert_eq!(scanner.tokens.len(), 2); // EOF token included
         assert_eq!(scanner.tokens[0].token_type, STRING);
+        assert_eq!(scanner.tokens[1].token_type, EoF);
 
+        //since the literal is of type string we need to make them as reference
         match scanner.tokens[0].literal.as_ref().unwrap() {
             StringValue(val) => assert_eq!(val, "ABC"),
             _ => panic!("Incorrect literal type"),

@@ -27,17 +27,18 @@ fn run(_contents: &str) -> Result<(), String> {
 fn run_prompt() -> Result<(), String> {
     loop {
         println!("> ");
-        let mut buffer = String::new();
+        let mut buffer = String::new();  //make a new empty string which will later store the input from user
         match io::stdout().flush() {
             Ok(_) => (),
             Err(_) => return Err("Could not reach flush stdout".to_string()),
         }
+        //means to print > as soon  as possible
 
         let stdin = io::stdin();
         let mut handle = stdin.lock();
-        match handle.read_line(&mut buffer) {
+        match handle.read_line(&mut buffer) { //stores the input string in the buffer
             Ok(n) => {
-                if n <= 1 {
+                if n <= 1 {  //n is the number of bytes here
                     // dbg!(n);
                     return Ok(());
                 }
@@ -46,7 +47,7 @@ fn run_prompt() -> Result<(), String> {
         }
 
         println!("ECHO: {}", buffer);
-        match run(&buffer) {
+        match run(&buffer) { //sedning a immutable refernece to the run function which will execute the text passed in the input terminal
             Ok(_) => (),
             Err(msg) => println!("ERROR:\n {}", msg),
         }
@@ -60,7 +61,7 @@ fn main() {
         println!("Usage: fnky [script]");
         exit(64);
     } else if args.len() == 2 {
-        match run_file(&args[1]) {
+        match run_file(&args[1]) { //the args[0] will be the location of executable of this code but args[1] will store the file location whijch will be read by the interpreter and executes it
             Ok(_) => exit(0),
             Err(msg) => {
                 println!("ERROR:\n{}", msg);
@@ -71,7 +72,7 @@ fn main() {
         match run_prompt() {
             Ok(_) => exit(0),
             Err(msg) => {
-                println!("ERROR:\n{}", msg);
+                println!("ERROR:\n{}", msg);   //if we dont provide any file path call run_primpt
                 exit(1);
             }
         }
