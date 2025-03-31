@@ -2,7 +2,8 @@ mod scanner;
 use crate::scanner::*;
 mod expr;
 use crate::expr::*;
-
+mod parser;
+use crate::expr::*;
 use std::env;
 use std::fs;
 use std::io::{self, BufRead, Write};
@@ -18,7 +19,7 @@ fn run_file(path: &str) -> Result<(), String> {
 fn run(_contents: &str) -> Result<(), String> {
     let mut scanner = Scanner::new(_contents); // Now `scanner` is mutable
     let tokens = scanner.scan_tokens(); // Now it can be borrowed mutably
-    
+
     for token in tokens {
         println!("{:?}", token);
     }
@@ -29,7 +30,7 @@ fn run(_contents: &str) -> Result<(), String> {
 fn run_prompt() -> Result<(), String> {
     loop {
         println!("> ");
-        let mut buffer = String::new();  //make a new empty string which will later store the input from user
+        let mut buffer = String::new(); //make a new empty string which will later store the input from user
         match io::stdout().flush() {
             Ok(_) => (),
             Err(_) => return Err("Could not reach flush stdout".to_string()),
@@ -38,9 +39,11 @@ fn run_prompt() -> Result<(), String> {
 
         let stdin = io::stdin();
         let mut handle = stdin.lock();
-        match handle.read_line(&mut buffer) { //stores the input string in the buffer
+        match handle.read_line(&mut buffer) {
+            //stores the input string in the buffer
             Ok(n) => {
-                if n <= 1 {  //n is the number of bytes here
+                if n <= 1 {
+                    //n is the number of bytes here
                     // dbg!(n);
                     return Ok(());
                 }
@@ -49,7 +52,8 @@ fn run_prompt() -> Result<(), String> {
         }
 
         println!("ECHO: {}", buffer);
-        match run(&buffer) { //sedning a immutable refernece to the run function which will execute the text passed in the input terminal
+        match run(&buffer) {
+            //sedning a immutable refernece to the run function which will execute the text passed in the input terminal
             Ok(_) => (),
             Err(msg) => println!("ERROR:\n {}", msg),
         }
@@ -63,7 +67,8 @@ fn main() {
         println!("Usage: fnky [script]");
         exit(64);
     } else if args.len() == 2 {
-        match run_file(&args[1]) { //the args[0] will be the location of executable of this code but args[1] will store the file location whijch will be read by the interpreter and executes it
+        match run_file(&args[1]) {
+            //the args[0] will be the location of executable of this code but args[1] will store the file location whijch will be read by the interpreter and executes it
             Ok(_) => exit(0),
             Err(msg) => {
                 println!("ERROR:\n{}", msg);
@@ -74,7 +79,7 @@ fn main() {
         match run_prompt() {
             Ok(_) => exit(0),
             Err(msg) => {
-                println!("ERROR:\n{}", msg);   //if we dont provide any file path call run_primpt
+                println!("ERROR:\n{}", msg); //if we dont provide any file path call run_primpt
                 exit(1);
             }
         }
