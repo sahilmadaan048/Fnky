@@ -40,7 +40,7 @@ fn run_prompt() -> Result<(), String> {
         let stdin = io::stdin();
         let mut handle = stdin.lock();
         match handle.read_line(&mut buffer) {
-            //stores the input string in the buffer
+            //stores t:he input string in the buffer
             Ok(n) => {
                 if n <= 1 {
                     //n is the number of bytes here
