@@ -1,5 +1,6 @@
-use crate::scanner::Token;
-use crate::TokenType;
+use crate::scanner;
+use crate::scanner::{Token, TokenType}; // For using scanner::LiteralValue
+
 pub enum LiteralValue {
     Number(f32),
     StringValue(String),
@@ -7,7 +8,24 @@ pub enum LiteralValue {
     False,
     Nil,
 }
+
 use LiteralValue::*;
+
+fn unwrap_as_f32(literal: Option<scanner::LiteralValue>) -> f32 {
+    match literal {
+        Some(scanner::LiteralValue::IntValue(x)) => x as f32,
+        Some(scanner::LiteralValue::FValue(x)) => x as f32,
+        _ => panic!("Could not unwrap as f32"),
+    }
+}
+
+fn unwrap_as_string(literal: Option<scanner::LiteralValue>) -> String {
+    match literal {
+        Some(scanner::LiteralValue::StringValue(s)) => s.clone(),
+        Some(scanner::LiteralValue::IdentifierVal(s)) => s.clone(),
+        _ => panic!("Could not unwrap as string"),
+    }
+}
 
 pub enum Expr {
     Binary {
@@ -26,14 +44,26 @@ pub enum Expr {
         right: Box<Expr>,
     },
 }
+
 impl LiteralValue {
     pub fn to_string(&self) -> String {
         match self {
             LiteralValue::Number(x) => x.to_string(),
-            LiteralValue::StringValue(x) => x.clone(),
+            LiteralValue::StringValue(s) => s.clone(),
             LiteralValue::True => "true".to_string(),
             LiteralValue::False => "false".to_string(),
             LiteralValue::Nil => "nil".to_string(),
+        }
+    }
+
+    pub fn from_token(token: Token) -> Self {
+        match token.token_type {
+            TokenType::NUMBER => Self::Number(unwrap_as_f32(token.literal)),
+            TokenType::STRING => Self::StringValue(unwrap_as_string(token.literal)),
+            TokenType::FALSE => Self::False,
+            TokenType::TRUE => Self::True,
+            TokenType::NIL => Self::Nil,
+            _ => panic!("Could not create LiteralValue from {:?}", token),
         }
     }
 }
@@ -45,20 +75,18 @@ impl Expr {
                 left,
                 operator,
                 right,
-            } => format!(
-                "({} {} {})",
-                operator.lexeme,
-                left.to_string(),
-                right.to_string()
-            ),
-            Expr::Grouping { expression } => format!("(group {})", (*expression).to_string()),
-            Expr::Literal { value } => {
-                format!("{}", value.to_string())
+            } => {
+                format!(
+                    "({} {} {})",
+                    operator.lexeme,
+                    left.to_string(),
+                    right.to_string()
+                )
             }
+            Expr::Grouping { expression } => format!("(group {})", expression.to_string()),
+            Expr::Literal { value } => value.to_string(),
             Expr::Unary { operator, right } => {
-                let operator_str = operator.lexeme.clone();
-                let right_str = (*right).to_string();
-                format!("({} {})", operator_str, right_str)
+                format!("({} {})", operator.lexeme, right.to_string())
             }
         }
     }
@@ -68,11 +96,10 @@ impl Expr {
     }
 }
 
-
+#[cfg(test)]
 mod tests {
-    use super::*;
-    use super::Expr::*;
-    use super::LiteralValue::*;
+    use super::{Expr, LiteralValue};
+    use crate::scanner::{Token, TokenType};
 
     #[test]
     fn pretty_print_ast() {
@@ -83,13 +110,13 @@ mod tests {
             line_number: 0,
         };
 
-        let onetwothree = Literal {
-            value: Number(123.0),
+        let onetwothree = Expr::Literal {
+            value: LiteralValue::Number(123.0),
         };
 
-        let group = Grouping {
-            expression: Box::from(Literal {
-                value: Number(45.67),
+        let group = Expr::Grouping {
+            expression: Box::new(Expr::Literal {
+                value: LiteralValue::Number(45.67),
             }),
         };
 
@@ -100,13 +127,18 @@ mod tests {
             line_number: 0,
         };
 
-        let ast = Binary { left: Box::from( Unary { operator: minus_token,right: Box::from( onetwothree )}),
-                          operator: multi,
-                          right: Box::from(group )};
-        
-        // ast.print();
+        let ast = Expr::Binary {
+            left: Box::new(Expr::Unary {
+                operator: minus_token,
+                right: Box::new(onetwothree),
+            }),
+            operator: multi,
+            right: Box::new(group),
+        };
+
+        ast.print();
         let result = ast.to_string();
         assert_eq!(result, "(* (- 123) (group 45.67))");
     }
-
 }
+
