@@ -23,7 +23,7 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
-    fn expression(&mut self) -> Expr {
+    pub fn expression(&mut self) -> Expr {
         self.equality()
     }
 
@@ -150,5 +150,21 @@ impl Parser {
 
     fn is_at_end(&self) -> bool {
         self.peek().token_type == EoF
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::scanner::LiteralValue::*;
+
+    #[test]
+    fn test_addition() {
+        let tokens = vec![Token {
+            token_type: NUMBER
+            lexeme: "1".to_string(),
+            literal: Some(IntValue(1)),
+            line_number: 0,
+        }];
     }
 }
