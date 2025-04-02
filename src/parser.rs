@@ -161,7 +161,7 @@ mod tests {
     #[test]
     fn test_addition() {
         let tokens = vec![Token {
-            token_type: NUMBER
+            token_type: NUMBER,
             lexeme: "1".to_string(),
             literal: Some(IntValue(1)),
             line_number: 0,
