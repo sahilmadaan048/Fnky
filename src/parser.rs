@@ -23,103 +23,101 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
-    pub fn expression(&mut self) -> Expr {
+    pub fn expression(&mut self) -> Result<Expr, String> {
         self.equality()
     }
 
-    fn equality(&mut self) -> Expr {
-        let mut expr = self.comparison();
-
+    fn equality(&mut self) -> Result<Expr, String> {
+        let mut expr = self.comparison()?;
         while match_tokens!(self, BANG_EQUAL, EQUAL_EQUAL) {
             let operator = self.previous();
-            let rhs = self.comparison();
+            let rhs = self.comparison()?;
             expr = Binary {
                 left: Box::new(expr),
                 operator,
                 right: Box::new(rhs),
             };
         }
-        expr
+        Ok(expr)
     }
 
-    fn comparison(&mut self) -> Expr {
-        let mut expr = self.term();
-
+    fn comparison(&mut self) -> Result<Expr, String> {
+        let mut expr = self.term()?;
         while match_tokens!(self, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL) {
             let op = self.previous();
-            let rhs = self.term();
+            let rhs = self.term()?;
             expr = Binary {
                 left: Box::new(expr),
                 operator: op,
                 right: Box::new(rhs),
             };
         }
-        expr
+        Ok(expr)
     }
 
-    fn term(&mut self) -> Expr {
-        let mut expr = self.factor();
-
+    fn term(&mut self) -> Result<Expr, String> {
+        let mut expr = self.factor()?;
         while match_tokens!(self, MINUS, PLUS) {
             let op = self.previous();
-            let rhs = self.factor();
+            let rhs = self.factor()?;
             expr = Binary {
                 left: Box::new(expr),
                 operator: op,
                 right: Box::new(rhs),
             };
         }
-        expr
+        Ok(expr)
     }
 
-    fn factor(&mut self) -> Expr {
-        let mut expr = self.unary();
+    fn factor(&mut self) -> Result<Expr, String> {
+        let mut expr = self.unary()?;
         while match_tokens!(self, SLASH, STAR) {
             let op = self.previous();
-            let rhs = self.unary();
+            let rhs = self.unary()?;
             expr = Binary {
                 left: Box::new(expr),
                 operator: op,
                 right: Box::new(rhs),
             };
         }
-        expr
+        Ok(expr)
     }
 
-    fn unary(&mut self) -> Expr {
+    fn unary(&mut self) -> Result<Expr, String> {
         if match_tokens!(self, BANG, MINUS) {
             let op = self.previous();
-            let rhs = self.unary();
-            Unary {
+            let rhs = self.unary()?;
+            Ok(Unary {
                 operator: op,
                 right: Box::new(rhs),
-            }
+            })
         } else {
             self.primary()
         }
     }
 
-    fn primary(&mut self) -> Expr {
+    fn primary(&mut self) -> Result<Expr, String> {
         if self.match_token(&LEFT_PAREN) {
-            let expr = self.expression();
-            self.consume(RIGHT_PAREN, "Expected ')' ");
-            Grouping {
-                expression: Box::new(expr),
-            }
+            let expr = self.expression()?;
+            self.consume(RIGHT_PAREN, "Expected ')' ")?;
+            Ok(Grouping {
+                expression: Box::from(expr),
+            })
         } else {
-            // Consume the literal token (like NUMBER) to advance the token pointer.
-            let token = self.advance();
-            Literal {
+            let token = self.peek().clone();
+            self.advance();
+            Ok(Literal {
                 value: LiteralValue::from_token(token),
-            }
+            })
         }
     }
 
-    fn consume(&mut self, token_type: TokenType, msg: &str) {
+    fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<(), String> {
         if self.peek().token_type == token_type {
             self.advance();
+            Ok(())
         } else {
-            panic!("{}", msg);
+            Err(msg.to_string())
         }
     }
 
@@ -134,11 +132,10 @@ impl Parser {
         }
     }
 
-    fn advance(&mut self) -> Token {
+    fn advance(&mut self) {
         if !self.is_at_end() {
             self.current += 1;
         }
-        self.previous()
     }
 
     fn peek(&self) -> &Token {
@@ -146,11 +143,7 @@ impl Parser {
     }
 
     fn previous(&self) -> Token {
-        if self.current == 0 {
-            self.tokens[0].clone()
-        } else {
-            self.tokens[self.current - 1].clone()
-        }
+        self.tokens[self.current.saturating_sub(1)].clone()
     }
 
     fn is_at_end(&self) -> bool {
@@ -165,92 +158,39 @@ mod tests {
 
     #[test]
     fn test_addition() {
-        let one = Token {
-            token_type: NUMBER,
-            lexeme: "1".to_string(),
-            literal: Some(IntValue(1)),
-            line_number: 0,
-        };
-
-        let plus = Token {
-            token_type: PLUS,
-            lexeme: "+".to_string(),
-            literal: None,
-            line_number: 0,
-        };
-
-        let two = Token {
-            token_type: NUMBER,
-            lexeme: "2".to_string(),
-            literal: Some(IntValue(2)),
-            line_number: 0,
-        };
-
-        let semicol = Token {
-            token_type: SEMICOLON,
-            lexeme: ";".to_string(),
-            literal: None,
-            line_number: 0,
-        };
-
-        let tokens = vec![one, plus, two, semicol];
+        let tokens = vec![
+            Token { token_type: NUMBER, lexeme: "1".to_string(), literal: Some(IntValue(1)), line_number: 0 },
+            Token { token_type: PLUS, lexeme: "+".to_string(), literal: None, line_number: 0 },
+            Token { token_type: NUMBER, lexeme: "2".to_string(), literal: Some(IntValue(2)), line_number: 0 },
+            Token { token_type: SEMICOLON, lexeme: ";".to_string(), literal: None, line_number: 0 },
+        ];
         let mut parser = Parser::new(tokens);
-
-        let parsed_expr = parser.expression();
-        let string_expr = parsed_expr.to_string();
-
-        // println!("{}", string_expr);
-        assert_eq!(string_expr, "(+ 1 2)");
+        let parsed_expr = parser.expression().unwrap();
+        assert_eq!(parsed_expr.to_string(), "(+ 1 2)");
     }
 
     #[test]
     fn test_comparison() {
-        let one = Token {
-            token_type: NUMBER,
-            lexeme: "1".to_string(),
-            literal: Some(IntValue(1)),
-            line_number: 0,
-        };
-
-        let greater = Token {
-            token_type: PLUS,
-            lexeme: ">".to_string(),
-            literal: None,
-            line_number: 0,
-        };
-
-        let two = Token {
-            token_type: NUMBER,
-            lexeme: "2".to_string(),
-            literal: Some(IntValue(2)),
-            line_number: 0,
-        };
-
-        let semicol = Token {
-            token_type: SEMICOLON,
-            lexeme: ";".to_string(),
-            literal: None,
-            line_number: 0,
-        };
-
-        let tokens = vec![one, greater, two, semicol];
+        let tokens = vec![
+            Token { token_type: NUMBER, lexeme: "1".to_string(), literal: Some(IntValue(1)), line_number: 0 },
+            Token { token_type: GREATER, lexeme: ">".to_string(), literal: None, line_number: 0 },
+            Token { token_type: NUMBER, lexeme: "2".to_string(), literal: Some(IntValue(2)), line_number: 0 },
+            Token { token_type: SEMICOLON, lexeme: ";".to_string(), literal: None, line_number: 0 },
+        ];
         let mut parser = Parser::new(tokens);
-
-        let parsed_expr = parser.expression();
-        let string_expr = parsed_expr.to_string();
-
-        // println!("{}", string_expr);
-        assert_eq!(string_expr, "(> 1 2)");
+        let parsed_expr = parser.expression().unwrap();
+        assert_eq!(parsed_expr.to_string(), "(> 1 2)");
     }
 
     #[test]
     fn test_comparison2() {
         let source = "1 + 2 == 5 + 7";
         let mut scanner = Scanner::new(source);
+ 
         let tokens = scanner.scan_tokens().unwrap();
         let mut parser = Parser::new(tokens);
-        let mut parsed_expr = parser.expression();
 
+        let mut parsed_expr = parser.expression().unwrap();
         let string_expr = parsed_expr.to_string();
 
         println!("{}", string_expr);
