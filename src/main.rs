@@ -1,9 +1,8 @@
 mod scanner;
-use crate::scanner::*;
 mod expr;
-use crate::expr::*;
 mod parser;
-use crate::expr::*;
+use parser::Parser;
+use crate::scanner::*;
 use std::env;
 use std::fs;
 use std::io::{self, BufRead, Write};
@@ -18,13 +17,13 @@ fn run_file(path: &str) -> Result<(), String> {
 
 fn run(_contents: &str) -> Result<(), String> {
     let mut scanner = Scanner::new(_contents); // Now `scanner` is mutable
-    let tokens = scanner.scan_tokens(); // Now it can be borrowed mutably
+    let tokens = scanner.scan_tokens().unwrap(); // Now it can be borrowed mutably
 
-    for token in tokens {
-        println!("{:?}", token);
-    }
+    let mut parser = Parser::new(tokens);
+
+    let expr = parser.expression()?;
+    println!("{}", expr.to_string());
     return Ok(());
-    // return Err("Not implemented".to_string());
 }
 
 fn run_prompt() -> Result<(), String> {

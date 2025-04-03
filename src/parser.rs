@@ -23,6 +23,10 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
+    pub fn parse(&mut self) -> Result<Expr, String> {
+        self.expression()
+    }
+
     pub fn expression(&mut self) -> Result<Expr, String> {
         self.equality()
     }
@@ -97,19 +101,27 @@ impl Parser {
     }
 
     fn primary(&mut self) -> Result<Expr, String> {
-        if self.match_token(&LEFT_PAREN) {
-            let expr = self.expression()?;
-            self.consume(RIGHT_PAREN, "Expected ')' ")?;
-            Ok(Grouping {
-                expression: Box::from(expr),
-            })
-        } else {
-            let token = self.peek().clone();
-            self.advance();
-            Ok(Literal {
-                value: LiteralValue::from_token(token),
-            })
+        let token = self.peek().clone();
+
+        let result;
+        match token.token_type {
+            LEFT_PAREN => {
+                self.advance();
+                let expr = self.expression()?;
+                self.consume(RIGHT_PAREN, "Expected: ')'")?;
+                result = Ok(Grouping {
+                    expression: Box::from(expr),
+                });
+            }
+            FALSE | TRUE | NIL | NUMBER | STRING => {
+                self.advance();
+                result = Ok(Literal {
+                    value: LiteralValue::from_token(token.clone()),
+                })
+            }
+            _ => return Err("Expected expression".to_string()),
         }
+        result        
     }
 
     fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<(), String> {
@@ -148,6 +160,23 @@ impl Parser {
 
     fn is_at_end(&self) -> bool {
         self.peek().token_type == EoF
+    }
+
+    fn synchronize(&mut self) {
+        self.advance();
+
+        while !self.is_at_end() {
+            if self.previous().token_type == SEMICOLON {
+                return;
+            }
+
+            match self.peek().token_type {
+                CLASS | FUN | VAR | FOR | IF | WHILE | PRINT | RETURN => return,
+                _ => (),
+            }
+
+            self.advance();
+        }
     }
 }
 
@@ -197,4 +226,21 @@ mod tests {
 
         assert_eq!(string_expr, "(== (+ 1 2) (+ 5 7))");
     }
+
+    #[test]
+    fn test_eq_with_param() {
+        let source = "1 == (2 + 2)";
+        let mut scanner = Scanner::new(source);
+ 
+        let tokens = scanner.scan_tokens().unwrap();
+        let mut parser = Parser::new(tokens);
+
+        let mut parsed_expr = parser.expression().unwrap();
+        let string_expr = parsed_expr.to_string();
+
+        println!("{}", string_expr);
+
+        assert_eq!(string_expr, "(== 1 (group (+ 2 2)))");
+    }
 }
+ 
