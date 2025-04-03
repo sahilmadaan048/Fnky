@@ -107,7 +107,8 @@ impl Parser {
                 expression: Box::new(expr),
             }
         } else {
-            let token = self.previous();
+            // Consume the literal token (like NUMBER) to advance the token pointer.
+            let token = self.advance();
             Literal {
                 value: LiteralValue::from_token(token),
             }
@@ -145,7 +146,11 @@ impl Parser {
     }
 
     fn previous(&self) -> Token {
-        self.tokens[self.current - 1].clone()
+        if self.current == 0 {
+            self.tokens[0].clone()
+        } else {
+            self.tokens[self.current - 1].clone()
+        }
     }
 
     fn is_at_end(&self) -> bool {
@@ -160,11 +165,41 @@ mod tests {
 
     #[test]
     fn test_addition() {
-        let tokens = vec![Token {
+        let one = Token {
             token_type: NUMBER,
             lexeme: "1".to_string(),
             literal: Some(IntValue(1)),
             line_number: 0,
-        }];
+        };
+
+        let plus = Token {
+            token_type: PLUS,
+            lexeme: "+".to_string(),
+            literal: None,
+            line_number: 0,
+        };
+
+        let two = Token {
+            token_type: NUMBER,
+            lexeme: "2".to_string(),
+            literal: Some(IntValue(2)),
+            line_number: 0,
+        };
+
+        let semicol = Token {
+            token_type: SEMICOLON,
+            lexeme: ";".to_string(),
+            literal: None,
+            line_number: 0,
+        };
+
+        let tokens = vec![one, plus, two, semicol];
+        let mut parser = Parser::new(tokens);
+
+        let parsed_expr = parser.expression();
+        let string_expr = parsed_expr.to_string();
+
+        // println!("{}", string_expr);
+        assert_eq!(string_expr, "(+ 1 2)");
     }
 }
