@@ -1,6 +1,7 @@
 use crate::scanner;
 use crate::scanner::{Token, TokenType}; // For using scanner::LiteralValue
 
+#[derive(Clone, Debug)]
 pub enum LiteralValue {
     Number(f32),
     StringValue(String),
@@ -8,7 +9,6 @@ pub enum LiteralValue {
     False,
     Nil,
 }
-
 use LiteralValue::*;
 
 fn unwrap_as_f32(literal: Option<scanner::LiteralValue>) -> f32 {
@@ -66,6 +66,28 @@ impl LiteralValue {
             _ => panic!("Could not create LiteralValue from {:?}", token),
         }
     }
+
+    pub fn is_falsy(&self) -> LiteralValue {
+        match self {
+            Number(x) => {
+                if *x == 0.0 {
+                    True
+                } else {
+                    False
+                }
+            }
+            StringValue(s) => {
+                if s.len() == 0 {
+                    True
+                } else {
+                    False
+                }
+            }
+            True => False,
+            False => True,
+            Nil => True,
+        }
+    }
 }
 
 impl Expr {
@@ -88,6 +110,32 @@ impl Expr {
             Expr::Unary { operator, right } => {
                 format!("({} {})", operator.lexeme, right.to_string())
             }
+        }
+    }
+
+    pub fn evaluate(&self) -> Result<LiteralValue, String> {
+        match self {
+            Expr::Literal { value } => Ok(value.clone()),
+
+            Expr::Grouping { expression } => expression.evaluate(),
+
+            Expr::Unary { operator, right } => {
+                let right = right.evaluate()?;
+
+                match (right.clone(), operator.token_type) {
+                    (LiteralValue::Number(x), TokenType::MINUS) => Ok(Number(-x)),
+                    (_, TokenType::MINUS) => Err(format!("Minus not implemented for {:?}", right)),
+                    (any, TokenType::BANG) => Ok(any.is_falsy()),
+                    (LiteralValue::True, TokenType::BANG) => Ok(False),
+                    (LiteralValue::False, TokenType::BANG) => Ok(True),
+                    (_, TokenType::BANG) => Err(format!("Bang operator not implemented for {:?}", right)),
+                    _ => Err(format!(
+                        "Unsupported unary operation: {:?}",
+                        operator.token_type
+                    )),
+                }
+            }
+            _ => todo!()
         }
     }
 
@@ -141,4 +189,3 @@ mod tests {
         assert_eq!(result, "(* (- 123) (group 45.67))");
     }
 }
-
