@@ -1,8 +1,8 @@
-mod scanner;
 mod expr;
 mod parser;
-use parser::Parser;
+mod scanner;
 use crate::scanner::*;
+use parser::Parser;
 use std::env;
 use std::fs;
 use std::io::{self, BufRead, Write};
@@ -20,9 +20,9 @@ fn run(_contents: &str) -> Result<(), String> {
     let tokens = scanner.scan_tokens().unwrap(); // Now it can be borrowed mutably
 
     let mut parser = Parser::new(tokens);
-
-    let expr = parser.expression()?;
-    println!("{}", expr.to_string());
+    let expr = parser.parse()?;
+    let result = expr.evaluate()?;
+    println!("{}", result.to_string());
     return Ok(());
 }
 
@@ -84,3 +84,4 @@ fn main() {
         }
     }
 }
+
