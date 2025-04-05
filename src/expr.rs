@@ -48,11 +48,20 @@ pub enum Expr {
 impl LiteralValue {
     pub fn to_string(&self) -> String {
         match self {
-            LiteralValue::Number(x) => x.to_string(),
-            LiteralValue::StringValue(s) => s.clone(),
-            LiteralValue::True => "true".to_string(),
-            LiteralValue::False => "false".to_string(),
-            LiteralValue::Nil => "nil".to_string(),
+            Number(x) => x.to_string(),
+            StringValue(s) => s.clone(),
+            True => "true".to_string(),
+            False => "false".to_string(),
+            Nil => "nil".to_string(),
+        }
+    }
+
+    pub fn to_type(&self) -> &str {
+        match self {
+            Number(_) => "Number",
+            StringValue(_) => "String",
+            True | False => "Boolean",
+            Nil => "nil",
         }
     }
 
@@ -69,29 +78,18 @@ impl LiteralValue {
             ),
         }
     }
+
     pub fn from_bool(b: bool) -> Self {
         if b { True } else { False }
     }
 
-    pub fn is_falsy(&self) -> LiteralValue {
+    pub fn is_falsy(&self) -> bool {
         match self {
-            Number(x) => {
-                if *x == 0.0 {
-                    True
-                } else {
-                    False
-                }
-            }
-            StringValue(s) => {
-                if s.is_empty() {
-                    True
-                } else {
-                    False
-                }
-            }
-            True => False,
-            False => True,
-            Nil => True,
+            Number(x) => *x == 0.0,
+            StringValue(s) => s.is_empty(),
+            True => false,
+            False => true,
+            Nil => true,
         }
     }
 }
@@ -129,20 +127,12 @@ impl Expr {
                 let right = right.evaluate()?;
 
                 match (right.clone(), operator.token_type) {
-                    (LiteralValue::Number(x), TokenType::MINUS) => Ok(Number(-x)),
+                    (Number(x), TokenType::MINUS) => Ok(Number(-x)),
                     (_, TokenType::MINUS) => {
-                        Err(format!("Minus not implemented for {:?}", right.to_string()))
+                        Err(format!("Minus not implemented for {:?}", right.to_type()))
                     }
-                    (any, TokenType::BANG) => Ok(any.is_falsy()),
-                    (LiteralValue::True, TokenType::BANG) => Ok(False),
-                    (LiteralValue::False, TokenType::BANG) => Ok(True),
-                    (_, TokenType::BANG) => {
-                        Err(format!("Bang operator not implemented for {:?}", right))
-                    }
-                    _ => Err(format!(
-                        "Unsupported unary operation: {:?}",
-                        operator.token_type
-                    )),
+                    (any, TokenType::BANG) => Ok(LiteralValue::from_bool(any.is_falsy())),
+                    (_, ttype) => Err(format!("{} is not a valid unary operator", ttype)),
                 }
             }
 
@@ -154,63 +144,56 @@ impl Expr {
                 let left = left.evaluate()?;
                 let right = right.evaluate()?;
 
-                match (left.clone(), operator.token_type, right.clone()) {
-                    (LiteralValue::Number(x), TokenType::PLUS, LiteralValue::Number(y)) => {
-                        Ok(Number(x + y))
-                    }
-                    (LiteralValue::Number(x), TokenType::MINUS, LiteralValue::Number(y)) => {
-                        Ok(Number(x - y))
-                    }
-                    (LiteralValue::Number(x), TokenType::STAR, LiteralValue::Number(y)) => {
-                        Ok(Number(x * y))
-                    }
-                    (LiteralValue::Number(x), TokenType::SLASH, LiteralValue::Number(y)) => {
-                        Ok(Number(x / y))
-                    }
-                    (LiteralValue::Number(x), TokenType::GREATER, LiteralValue::Number(y)) => {
+                match (&left, operator.token_type, &right) {
+                    (Number(x), TokenType::PLUS, Number(y)) => Ok(Number(x + y)),
+                    (Number(x), TokenType::MINUS, Number(y)) => Ok(Number(x - y)),
+                    (Number(x), TokenType::STAR, Number(y)) => Ok(Number(x * y)),
+                    (Number(x), TokenType::SLASH, Number(y)) => Ok(Number(x / y)),
+
+                    (Number(x), TokenType::GREATER, Number(y)) => {
                         Ok(LiteralValue::from_bool(x > y))
                     }
-                    (
-                        LiteralValue::Number(x),
-                        TokenType::GREATER_EQUAL,
-                        LiteralValue::Number(y),
-                    ) => Ok(LiteralValue::from_bool(x >= y)),
-                    (LiteralValue::Number(x), TokenType::LESS, LiteralValue::Number(y)) => {
-                        Ok(LiteralValue::from_bool(x < y))
+                    (Number(x), TokenType::GREATER_EQUAL, Number(y)) => {
+                        Ok(LiteralValue::from_bool(x >= y))
                     }
-                    (LiteralValue::Number(x), TokenType::LESS_EQUAL, LiteralValue::Number(y)) => {
+                    (Number(x), TokenType::LESS, Number(y)) => Ok(LiteralValue::from_bool(x < y)),
+                    (Number(x), TokenType::LESS_EQUAL, Number(y)) => {
                         Ok(LiteralValue::from_bool(x <= y))
                     }
-                    (LiteralValue::Number(x), TokenType::BANG_EQUAL, LiteralValue::Number(y)) => {
-                        Ok(LiteralValue::from_bool(x != y))
-                    }
-                    (LiteralValue::Number(x), TokenType::EQUAL_EQUAL, LiteralValue::Number(y)) => {
-                        Ok(LiteralValue::from_bool(x == y))
-                    }
-                    (StringValue(_), op, Number(_)) => {
+
+                    (StringValue(_), op, Number(_)) | (Number(_), op, StringValue(_)) => {
                         Err(format!("{} is not defined for string and number", op))
                     }
-                    (Number(_), op, StringValue(_)) => {
-                        Err(format!("{} is not defined for number and string", op))
-                    }
+
                     (StringValue(s1), TokenType::PLUS, StringValue(s2)) => {
                         Ok(StringValue(format!("{}{}", s1, s2)))
                     }
-                    (StringValue(s1), TokenType::EQUAL_EQUAL, StringValue(s2)) => {
-                        Ok(LiteralValue::from_bool(s1 == s2))
+
+                    (x, TokenType::BANG_EQUAL, y) => Ok(LiteralValue::from_bool(x != y)),
+                    (x, TokenType::EQUAL_EQUAL, y) => Ok(LiteralValue::from_bool(x == y)),
+
+                    (StringValue(s1), TokenType::GREATER, StringValue(s2)) => {
+                        Ok(LiteralValue::from_bool(s1 > s2))
                     }
-                    (StringValue(s1), TokenType::BANG_EQUAL, StringValue(s2)) => {
-                        Ok(LiteralValue::from_bool(s1 != s2))
+                    (StringValue(s1), TokenType::GREATER_EQUAL, StringValue(s2)) => {
+                        Ok(LiteralValue::from_bool(s1 >= s2))
                     }
-                    _ => Err(format!(
-                        "Unsupported binary operation: {:?} {:?} {:?}",
-                        left, operator.token_type, right
+                    (StringValue(s1), TokenType::LESS, StringValue(s2)) => {
+                        Ok(LiteralValue::from_bool(s1 < s2))
+                    }
+                    (StringValue(s1), TokenType::LESS_EQUAL, StringValue(s2)) => {
+                        Ok(LiteralValue::from_bool(s1 <= s2))
+                    }
+
+                    (x, ttype, y) => Err(format!(
+                        "{} is not implemented for operands {:?} and {:?}",
+                        ttype, x, y
                     )),
                 }
             }
-            _ => todo!(),
         }
     }
+
     pub fn print(&self) {
         println!("{}", self.to_string());
     }
