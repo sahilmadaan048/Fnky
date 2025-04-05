@@ -1,6 +1,8 @@
 mod expr;
+mod interpreter;
 mod parser;
 mod scanner;
+use crate::interpreter::Interpreter;
 use crate::scanner::*;
 use parser::Parser;
 use std::env;
@@ -9,24 +11,27 @@ use std::io::{self, BufRead, Write};
 use std::process::exit;
 
 fn run_file(path: &str) -> Result<(), String> {
+    let mut interpreter: Interpreter = Interpreter::new();
     match fs::read_to_string(path) {
         Err(msg) => return Err(msg.to_string()),
-        Ok(contents) => return run(&contents),
+        Ok(contents) => return run(&mut interpreter, &contents),
     }
 }
 
-fn run(_contents: &str) -> Result<(), String> {
+fn run(interpreter: &mut Interpreter, _contents: &str) -> Result<(), String> {
     let mut scanner = Scanner::new(_contents); // Now `scanner` is mutable
     let tokens = scanner.scan_tokens().unwrap(); // Now it can be borrowed mutably
 
     let mut parser = Parser::new(tokens);
     let expr = parser.parse()?;
-    let result = expr.evaluate()?;
+    //let result = expr.evaluate()?;
+    let result = interpreter.interpret(expr)?.clone();
     println!("{}", result.to_string());
     return Ok(());
 }
 
 fn run_prompt() -> Result<(), String> {
+    let mut interpreter: Interpreter = Interpreter::new();
     loop {
         println!("> ");
         let mut buffer = String::new(); //make a new empty string which will later store the input from user
@@ -51,7 +56,7 @@ fn run_prompt() -> Result<(), String> {
         }
 
         println!("ECHO: {}", buffer);
-        match run(&buffer) {
+        match run(&mut interpreter, &buffer) {
             //sedning a immutable refernece to the run function which will execute the text passed in the input terminal
             Ok(_) => (),
             Err(msg) => println!("ERROR:\n {}", msg),
@@ -84,4 +89,3 @@ fn main() {
         }
     }
 }
-
