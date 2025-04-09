@@ -2,6 +2,7 @@ mod expr;
 mod interpreter;
 mod parser;
 mod scanner;
+mod stmt;
 use crate::interpreter::Interpreter;
 use crate::scanner::*;
 use parser::Parser;

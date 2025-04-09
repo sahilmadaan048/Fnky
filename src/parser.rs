@@ -2,6 +2,7 @@ use crate::expr::{Expr, Expr::*};
 use crate::expr::{LiteralValue, LiteralValue::*};
 use crate::scanner::*;
 use crate::scanner::{Token, TokenType, TokenType::*};
+use crate::stmt::Stmt;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -23,8 +24,27 @@ impl Parser {
         Self { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> Result<Expr, String> {
-        self.expression()
+    pub fn parse(&mut self) -> Result<Vec<Stmt>, String> {
+        let mut stmts = Vec![];
+        let mut errs = Vec![];
+
+        while !self.is_at_end() {
+            let stmt = self.statement();
+            match stmt {
+                Ok(s) => stmts.push(s),
+                Err(msg) => errs.push(msg),
+            }
+        }
+
+        if errs.len() == 0 {
+            Ok(stmts)
+        } else {
+            Err(errs.join("\n"))
+        }
+    }
+
+    fn statement(&mut self) -> Result<Stmt, String> {
+        todo!()
     }
 
     pub fn expression(&mut self) -> Result<Expr, String> {
@@ -121,7 +141,7 @@ impl Parser {
             }
             _ => return Err("Expected expression".to_string()),
         }
-        result        
+        result
     }
 
     fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<(), String> {
@@ -188,10 +208,30 @@ mod tests {
     #[test]
     fn test_addition() {
         let tokens = vec![
-            Token { token_type: NUMBER, lexeme: "1".to_string(), literal: Some(IntValue(1)), line_number: 0 },
-            Token { token_type: PLUS, lexeme: "+".to_string(), literal: None, line_number: 0 },
-            Token { token_type: NUMBER, lexeme: "2".to_string(), literal: Some(IntValue(2)), line_number: 0 },
-            Token { token_type: SEMICOLON, lexeme: ";".to_string(), literal: None, line_number: 0 },
+            Token {
+                token_type: NUMBER,
+                lexeme: "1".to_string(),
+                literal: Some(IntValue(1)),
+                line_number: 0,
+            },
+            Token {
+                token_type: PLUS,
+                lexeme: "+".to_string(),
+                literal: None,
+                line_number: 0,
+            },
+            Token {
+                token_type: NUMBER,
+                lexeme: "2".to_string(),
+                literal: Some(IntValue(2)),
+                line_number: 0,
+            },
+            Token {
+                token_type: SEMICOLON,
+                lexeme: ";".to_string(),
+                literal: None,
+                line_number: 0,
+            },
         ];
         let mut parser = Parser::new(tokens);
         let parsed_expr = parser.expression().unwrap();
@@ -201,10 +241,30 @@ mod tests {
     #[test]
     fn test_comparison() {
         let tokens = vec![
-            Token { token_type: NUMBER, lexeme: "1".to_string(), literal: Some(IntValue(1)), line_number: 0 },
-            Token { token_type: GREATER, lexeme: ">".to_string(), literal: None, line_number: 0 },
-            Token { token_type: NUMBER, lexeme: "2".to_string(), literal: Some(IntValue(2)), line_number: 0 },
-            Token { token_type: SEMICOLON, lexeme: ";".to_string(), literal: None, line_number: 0 },
+            Token {
+                token_type: NUMBER,
+                lexeme: "1".to_string(),
+                literal: Some(IntValue(1)),
+                line_number: 0,
+            },
+            Token {
+                token_type: GREATER,
+                lexeme: ">".to_string(),
+                literal: None,
+                line_number: 0,
+            },
+            Token {
+                token_type: NUMBER,
+                lexeme: "2".to_string(),
+                literal: Some(IntValue(2)),
+                line_number: 0,
+            },
+            Token {
+                token_type: SEMICOLON,
+                lexeme: ";".to_string(),
+                literal: None,
+                line_number: 0,
+            },
         ];
         let mut parser = Parser::new(tokens);
         let parsed_expr = parser.expression().unwrap();
@@ -215,7 +275,7 @@ mod tests {
     fn test_comparison2() {
         let source = "1 + 2 == 5 + 7";
         let mut scanner = Scanner::new(source);
- 
+
         let tokens = scanner.scan_tokens().unwrap();
         let mut parser = Parser::new(tokens);
 
@@ -231,7 +291,7 @@ mod tests {
     fn test_eq_with_param() {
         let source = "1 == (2 + 2)";
         let mut scanner = Scanner::new(source);
- 
+
         let tokens = scanner.scan_tokens().unwrap();
         let mut parser = Parser::new(tokens);
 
@@ -243,4 +303,4 @@ mod tests {
         assert_eq!(string_expr, "(== 1 (group (+ 2 2)))");
     }
 }
- 
+
