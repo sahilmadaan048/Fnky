@@ -30,7 +30,8 @@ fn run(interpreter: &mut Interpreter, _contents: &str) -> Result<(), String> {
     println!("{}", result.to_string());
     return Ok(());
 }
-
+//i am doing nothing here
+//nothingn ain't working
 fn run_prompt() -> Result<(), String> {
     let mut interpreter: Interpreter = Interpreter::new();
     loop {
