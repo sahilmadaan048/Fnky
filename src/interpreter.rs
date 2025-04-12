@@ -9,5 +9,4 @@ impl Interpreter {
     pub fn interpret(&mut self, expr: Expr) -> Result<LiteralValue, String> {
         expr.evaluate()
     }
-    //testing done on the fixed parser
 }
