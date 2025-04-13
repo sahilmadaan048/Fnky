@@ -3,6 +3,7 @@ use crate::expr::{LiteralValue, LiteralValue::*};
 use crate::scanner::*;
 use crate::scanner::{Token, TokenType, TokenType::*};
 use crate::stmt::Stmt;
+use crate::stmt::Stmt::*;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -25,8 +26,8 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<Vec<Stmt>, String> {
-        let mut stmts = Vec![];
-        let mut errs = Vec![];
+        let mut stmts: Vec<Stmt> = Vec::new();
+        let mut errs: Vec<String> = Vec::new();
 
         while !self.is_at_end() {
             let stmt = self.statement();
@@ -44,7 +45,23 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Stmt, String> {
-        todo!()
+        if self.match_token(&PRINT) {
+            self.print_statement()
+        } else {
+            self.expression_statement()
+        }
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt, String> {
+        let value = self.expression()?;
+        self.consume(SEMICOLON, "Expected ';' after '.'")?;
+        Ok(Stmt::Print { expression: value })
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt, String> {
+        let expr = self.expression()?;
+        self.consume(SEMICOLON, "Expected ';' after expression")?;
+        Ok(Stmt::Expression { expression: expr })
     }
 
     pub fn expression(&mut self) -> Result<Expr, String> {
@@ -303,4 +320,3 @@ mod tests {
         assert_eq!(string_expr, "(== 1 (group (+ 2 2)))");
     }
 }
-

@@ -5,6 +5,7 @@ mod scanner;
 mod stmt;
 use crate::interpreter::Interpreter;
 use crate::scanner::*;
+use crate::stmt::Stmt::*;
 use parser::Parser;
 use std::env;
 use std::fs;
@@ -24,14 +25,12 @@ fn run(interpreter: &mut Interpreter, _contents: &str) -> Result<(), String> {
     let tokens = scanner.scan_tokens().unwrap(); // Now it can be borrowed mutably
 
     let mut parser = Parser::new(tokens);
-    let expr = parser.parse()?;
-    //let result = expr.evaluate()?;
-    let result = interpreter.interpret(expr)?.clone();
-    println!("{}", result.to_string());
+    let stmts = parser.parse()?;
+
+    interpreter.interpret(stmts);
     return Ok(());
 }
-//i am doing nothing here
-//nothingn ain't working
+
 fn run_prompt() -> Result<(), String> {
     let mut interpreter: Interpreter = Interpreter::new();
     loop {
