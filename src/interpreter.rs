@@ -24,6 +24,15 @@ impl Interpreter {
                     let value = expression.evaluate()?;
                     println!("{value:?}");
                 }
+                Stmt::Var {
+                    expression,
+                    name,
+                    initialiser,
+                } => {
+                    // Stub: Evaluate the expression and store it in a variable environment
+                    let _value = expression.evaluate()?;
+                    // TODO: Store `_value` into some environment map with variable name
+                }
             };
         }
 

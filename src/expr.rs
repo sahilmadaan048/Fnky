@@ -43,6 +43,9 @@ pub enum Expr {
         operator: Token,
         right: Box<Expr>,
     },
+    Variable {
+        name: Token,
+    },
 }
 
 impl LiteralValue {
@@ -114,6 +117,7 @@ impl Expr {
             Expr::Unary { operator, right } => {
                 format!("({} {})", operator.lexeme, right.to_string())
             }
+            &Expr::Variable { .. } => todo!(),
         }
     }
 
@@ -191,6 +195,7 @@ impl Expr {
                     )),
                 }
             }
+            Expr::Variable { .. } => todo!(),
         }
     }
 

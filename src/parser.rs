@@ -30,7 +30,7 @@ impl Parser {
         let mut errs: Vec<String> = Vec::new();
 
         while !self.is_at_end() {
-            let stmt = self.statement();
+            let stmt = self.declaration();
             match stmt {
                 Ok(s) => stmts.push(s),
                 Err(msg) => errs.push(msg),
@@ -42,6 +42,40 @@ impl Parser {
         } else {
             Err(errs.join("\n"))
         }
+    }
+
+    fn declaration(&mut self) -> Result<Stmt, String> {
+        if self.match_token(&VAR) {
+            match self.var_declaration() {
+                Ok(stmt) => Ok(stmt),
+                Err(msg) => {
+                    self.synchronize();
+                    Err(msg)
+                }
+            }
+        } else {
+            self.statement()
+        }
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt, String> {
+        let token = self.consume(IDENTIFIER, "Expected bvariable name")?;
+
+        let initialser;
+
+        if self.match_token(&EQUAL) {
+            initialser = self.expression()?;
+        } else {
+            initialser = Literal { value: Nil };
+        }
+
+        self.consume(SEMICOLON, "Expected ':' after variable decalaration")?;
+
+        Ok(Var {
+            expression: self.expression()?,
+            name: token,
+            initialiser: initialser,
+        })
     }
 
     fn statement(&mut self) -> Result<Stmt, String> {
@@ -161,10 +195,11 @@ impl Parser {
         result
     }
 
-    fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<(), String> {
+    fn consume(&mut self, token_type: TokenType, msg: &str) -> Result<Token, String> {
         if self.peek().token_type == token_type {
             self.advance();
-            Ok(())
+            let token = self.previous();
+            Ok(token)
         } else {
             Err(msg.to_string())
         }
