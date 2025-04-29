@@ -12,6 +12,8 @@ use std::fs;
 use std::io::{self, BufRead, Write};
 use std::process::exit;
 
+// static interpreter: Interpreter = Interpreter::new();
+
 fn run_file(path: &str) -> Result<(), String> {
     let mut interpreter: Interpreter = Interpreter::new();
     match fs::read_to_string(path) {
@@ -25,6 +27,8 @@ fn run(interpreter: &mut Interpreter, _contents: &str) -> Result<(), String> {
     let tokens = scanner.scan_tokens().unwrap(); // Now it can be borrowed mutably
 
     let mut parser = Parser::new(tokens);
+    // let expr = parser.parse()?;
+    // let result = expr.evaluate()?;
     let stmts = parser.parse()?;
 
     interpreter.interpret(stmts);
