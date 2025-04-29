@@ -1,3 +1,5 @@
+use std::char::EscapeUnicode;
+
 use crate::expr::{Expr, Expr::*};
 use crate::expr::{LiteralValue, LiteralValue::*};
 use crate::scanner::*;
@@ -67,12 +69,12 @@ impl Parser {
         if self.match_token(&EQUAL) {
             initialser = self.expression()?;
         } else {
-            initialser = Literal { value: Nil };
+            initialser = Literal {value: LiteralValue::Nil };
         }
 
         self.consume(SEMICOLON, "Expected ':' after variable decalaration")?;
 
-        Ok(Var {
+        Ok(Stmt:: Var {
             expression: self.expression()?,
             name: token,
             initialiser: initialser,
@@ -191,6 +193,10 @@ impl Parser {
                 result = Ok(Literal {
                     value: LiteralValue::from_token(token.clone()),
                 })
+            }
+            Var => {
+                self.advance();
+                result = Ok(Variable { name: self.previous() });
             }
             _ => return Err("Expected expression".to_string()),
         }

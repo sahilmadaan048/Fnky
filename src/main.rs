@@ -3,6 +3,8 @@ mod interpreter;
 mod parser;
 mod scanner;
 mod stmt;
+mod environment;
+use crate::environment::Environment;
 use crate::interpreter::Interpreter;
 use crate::scanner::*;
 use crate::stmt::Stmt::*;

@@ -1,5 +1,9 @@
+use std::clone;
+use std::fmt::format;
+
 use crate::scanner;
 use crate::scanner::{Token, TokenType};
+use crate::environment::Environment;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum LiteralValue {
@@ -118,18 +122,24 @@ impl Expr {
             Expr::Unary { operator, right } => {
                 format!("({} {})", operator.lexeme, right.to_string())
             }
-            &Expr::Variable { .. } => todo!(),
+            Expr::Variable { name } => format!("(var {})",name.lexeme),
         }
     }
 
-    pub fn evaluate(&self) -> Result<LiteralValue, String> {
+    pub fn evaluate(&self, environment: &Environment) -> Result<LiteralValue, String> {
         match self {
+            Expr::Variable { name } => {
+                match environment.get(name.lexeme.clone()) {
+                    Some(value) => Ok(value.clone()),
+                    None => Err(format!("Variable '{}' has not declared", name.lexeme)),
+                }
+            }
             Expr::Literal { value } => Ok(value.clone()),
 
-            Expr::Grouping { expression } => expression.evaluate(),
+            Expr::Grouping { expression } => Ok(expression.evaluate(environment)?),
 
             Expr::Unary { operator, right } => {
-                let right = right.evaluate()?;
+                let right = right.evaluate(environment)?;
 
                 match (right.clone(), operator.token_type) {
                     (Number(x), TokenType::MINUS) => Ok(Number(-x)),
@@ -146,8 +156,8 @@ impl Expr {
                 operator,
                 right,
             } => {
-                let left = left.evaluate()?;
-                let right = right.evaluate()?;
+                let left = left.evaluate(environment)?;
+                let right = right.evaluate(environment)?;
 
                 match (&left, operator.token_type, &right) {
                     (Number(x), TokenType::PLUS, Number(y)) => Ok(Number(x + y)),
@@ -196,7 +206,8 @@ impl Expr {
                     )),
                 }
             }
-            Expr::Variable { .. } => todo!(),
+           // Expr::Variable { name } => Ok(expression.evaluate(environment)?),
+            Expr::Variable { name } => todo!()
         }
     }
 

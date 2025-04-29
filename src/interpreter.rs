@@ -1,27 +1,31 @@
 use crate::expr::{Expr, LiteralValue};
 use crate::stmt::Stmt;
+use crate::environment::Environment;
 
 pub struct Interpreter {
     //Global state
+    environment: Environment,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            environment: Environment::new()
+        }
     }
 
     pub fn interpret_expr(&mut self, expr: Expr) -> Result<LiteralValue, String> {
-        expr.evaluate()
+        expr.evaluate(&self.environment)
     }
 
     pub fn interpret(&mut self, stmts: Vec<Stmt>) -> Result<(), String> {
         for stmt in stmts {
             match stmt {
                 Stmt::Expression { expression } => {
-                    expression.evaluate()?;
+                    expression.evaluate(&self.environment)?;
                 }
                 Stmt::Print { expression } => {
-                    let value = expression.evaluate()?;
+                    let value = expression.evaluate(&self.environment)?;
                     println!("{value:?}");
                 }
                 Stmt::Var {
@@ -29,9 +33,9 @@ impl Interpreter {
                     name,
                     initialiser,
                 } => {
-                    // Stub: Evaluate the expression and store it in a variable environment
-                    let _value = expression.evaluate()?;
-                    // TODO: Store `_value` into some environment map with variable name
+                    let value = initialiser.evaluate(&self.environment)?;
+                    
+                    self.environment.define(name.lexeme, value);
                 }
             };
         }
