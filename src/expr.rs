@@ -129,7 +129,7 @@ impl Expr {
     pub fn evaluate(&self, environment: &Environment) -> Result<LiteralValue, String> {
         match self {
             Expr::Variable { name } => {
-                match environment.get(name.lexeme.clone()) {
+                match environment.get(&name.lexeme.clone()) {
                     Some(value) => Ok(value.clone()),
                     None => Err(format!("Variable '{}' has not declared", name.lexeme)),
                 }
