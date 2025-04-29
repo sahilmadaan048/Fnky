@@ -172,8 +172,9 @@ impl Parser {
         }
     }
 
+    //here we are checking for the parenthesis
     fn primary(&mut self) -> Result<Expr, String> {
-        let token = self.peek().clone();
+        let token = self.peek().clone(); //returns the token where i am currently at
 
         let result;
         match token.token_type {
@@ -227,6 +228,12 @@ impl Parser {
         &self.tokens[self.current]
     }
 
+    /*
+    Subtracts 1 from self.current, but if self.current is 0, it won’t panic or go negative — instead, it stays at 0.
+    
+    Purpose:
+This method returns the token just before the current one in a parser or tokenizer, handling the start-of-list edge case gracefull
+     */
     fn previous(&self) -> Token {
         self.tokens[self.current.saturating_sub(1)].clone()
     }
