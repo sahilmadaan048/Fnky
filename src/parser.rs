@@ -295,7 +295,9 @@ mod tests {
         ];
         let mut parser = Parser::new(tokens);
         let parsed_expr = parser.expression().unwrap();
-        assert_eq!(parsed_expr.to_string(), "(+ 1 2)");
+        let string_expr = parsed_expr.to_string();
+        // println!("{:?}", string_expr);
+        assert_eq!(string_expr, "(+ 1 2)");
     }
 
     #[test]

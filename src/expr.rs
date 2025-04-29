@@ -27,6 +27,7 @@ fn unwrap_as_string(literal: Option<scanner::LiteralValue>) -> String {
     }
 }
 
+// #[derive(Debug)]
 pub enum Expr {
     Binary {
         left: Box<Expr>,

@@ -12,5 +12,5 @@ pub enum Stmt {
         expression: Expr,
         name: Token,
         initialiser: Expr,
-    },
+    },  
 }
