@@ -15,17 +15,17 @@ impl Interpreter {
     }
 
     pub fn interpret_expr(&mut self, expr: Expr) -> Result<LiteralValue, String> {
-        expr.evaluate(&self.environment)
+        expr.evaluate(&mut self.environment)
     }
 
     pub fn interpret(&mut self, stmts: Vec<Stmt>) -> Result<(), String> {
         for stmt in stmts {
             match stmt {
                 Stmt::Expression { expression } => {
-                    expression.evaluate(&self.environment)?;
+                    expression.evaluate(&mut self.environment)?;
                 }
                 Stmt::Print { expression } => {
-                    let value = expression.evaluate(&self.environment)?;
+                    let value = expression.evaluate(&mut self.environment)?;
                     println!("{value:?}");
                 }
                 Stmt::Var {
@@ -33,7 +33,7 @@ impl Interpreter {
                     name,
                     initialiser,
                 } => {
-                    let value = initialiser.evaluate(&self.environment)?;
+                    let value = initialiser.evaluate(&mut self.environment)?;
                     
                     self.environment.define(name.lexeme, value);
                 }

@@ -31,8 +31,12 @@ fn unwrap_as_string(literal: Option<scanner::LiteralValue>) -> String {
     }
 }
 
-// #[derive(Debug)]
+#[derive(Debug)]
 pub enum Expr {
+    Assign {
+        name: Token, 
+        value: Box<Expr>,
+    },
     Binary {
         left: Box<Expr>,
         operator: Token,
@@ -105,7 +109,8 @@ impl LiteralValue {
 impl Expr {
     pub fn to_string(&self) -> String {
         match self {
-            Expr::Binary {
+            Expr::Assign { name, value } => format!("({name:?} : {})", value.to_string()),
+            Expr::Binary    {
                 left,
                 operator,
                 right,
@@ -123,11 +128,25 @@ impl Expr {
                 format!("({} {})", operator.lexeme, right.to_string())
             }
             Expr::Variable { name } => format!("(var {})",name.lexeme),
+            _ => todo!()
         }
     }
 
-    pub fn evaluate(&self, environment: &Environment) -> Result<LiteralValue, String> {
+    pub fn evaluate(&self, environment: &mut Environment) -> Result<LiteralValue, String> {
         match self {
+            Expr::Assign { name, value } => {
+                // First, evaluate the right‐hand side
+                let new_val = value.evaluate(environment)?;
+                // Check that the variable already exists
+                if environment.get(&name.lexeme).is_some() {
+                    // Update its binding
+                    environment.define(name.lexeme.to_string(), new_val.clone());
+                    // Return the assigned value
+                    Ok(new_val)
+                } else {
+                    Err(format!("Variable '{}' has not been declared.", name.lexeme))
+                }
+            }
             Expr::Variable { name } => {
                 match environment.get(&name.lexeme.clone()) {
                     Some(value) => Ok(value.clone()),
@@ -207,8 +226,9 @@ impl Expr {
                 }
             }
            // Expr::Variable { name } => Ok(expression.evaluate(environment)?),
-            Expr::Variable { name } => todo!()
-        }
+            Expr::Variable { name } => todo!(),
+            Expr::Assign { name, value } => todo!(),
+       }
     }
 
     pub fn print(&self) {
