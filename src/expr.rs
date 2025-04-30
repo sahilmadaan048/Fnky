@@ -136,21 +136,21 @@ impl Expr {
         match self {
             Expr::Assign { name, value } => {
                 // First, evaluate the right‐hand side
-                let new_val = value.evaluate(environment)?;
-                // Check that the variable already exists
-                if environment.get(&name.lexeme).is_some() {
-                    // Update its binding
-                    environment.define(name.lexeme.to_string(), new_val.clone());
-                    // Return the assigned value
-                    Ok(new_val)
+                let new_value = value.evaluate(environment)?;
+                
+                let assign_success = environment.assign(&name.lexeme, new_value.clone());
+                
+                if(assign_success) {
+                    Ok(new_value)
+
                 } else {
-                    Err(format!("Variable '{}' has not been declared.", name.lexeme))
+                    Err(format!("Variable {:#?} has not been declared", name.lexeme))
                 }
             }
             Expr::Variable { name } => {
                 match environment.get(&name.lexeme.clone()) {
                     Some(value) => Ok(value.clone()),
-                    None => Err(format!("Variable '{}' has not declared", name.lexeme)),
+                    None => Err(format!("Variable '{:#?}' has not declared", name.lexeme)),
                 }
             }
             Expr::Literal { value } => Ok(value.clone()),

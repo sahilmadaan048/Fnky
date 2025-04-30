@@ -33,7 +33,7 @@ fn run(interpreter: &mut Interpreter, _contents: &str) -> Result<(), String> {
     // let result = expr.evaluate()?;
     let stmts = parser.parse()?;
 
-    interpreter.interpret(stmts);
+    interpreter.interpret(stmts)?;
     return Ok(());
 }
 
