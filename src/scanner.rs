@@ -507,4 +507,3 @@ mod tests {
         assert_eq!(scanner.tokens[12].token_type, EoF);
     }
 }
-
