@@ -84,9 +84,22 @@ impl Parser {
     fn statement(&mut self) -> Result<Stmt, String> {
         if self.match_token(&PRINT) {
             self.print_statement()
+        } else if self.match_token(&LEFT_BRACE)  {
+            self.block_statement()
         } else {
             self.expression_statement()
         }
+    }
+
+    fn block_statement(&mut self) -> Result<Stmt, String> {
+        let mut statements = vec![];
+
+        while !self.check(RIGHT_BRACE) && !self.is_at_end() {
+            let decl = self.declaration()?;
+            statements.push(decl);
+        }
+        self.consume(RIGHT_BRACE, "eXPECTED: '} AFTER A BLOCK");
+        Ok( Stmt::Block { statements} )
     }
 
     fn print_statement(&mut self) -> Result<Stmt, String> {
@@ -211,6 +224,10 @@ impl Parser {
         } else {
             Err(msg.to_string())
         }
+    }
+
+    fn check(&mut self, typ: TokenType) -> bool {
+        self.peek().token_type == typ
     }
 
     fn match_token(&mut self, typ: &TokenType) -> bool {

@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{self, format};
 
 use crate::expr::Expr;
 use crate::scanner::Token;
@@ -15,6 +15,9 @@ pub enum Stmt {
         name: Token,
         initialiser: Expr,
     },  
+    Block {
+        statements: Vec<Stmt>,
+    },
 }
 
 
@@ -30,6 +33,9 @@ impl Stmt {
                 name,
                 initialiser,
             } => format!("(var {})", name.lexeme),
+            Block {
+                statements
+            } => format!("(block {})", statements.iter().map(|stmt| stmt.to_string()).collect::<Vec<String>>().join(",")),            
         }
     }
 }
